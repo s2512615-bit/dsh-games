@@ -1,0 +1,16 @@
+{
+  "tool": "dsh-game-studio",
+  "version": 1,
+  "games": {
+    "starfall-realm": {
+      "title": "星辉幻境",
+      "source": "a9a92c624d2ea019",
+      "publishedAt": "2026-11-26T13:57:32.639Z",
+      "buildId": "8bc81073be56",
+      "dimension": "2d",
+      "orientation": "landscape",
+      "cover": "starfall-realm/cover.jpg"
+    }
+  },
+  "wall": null
+}

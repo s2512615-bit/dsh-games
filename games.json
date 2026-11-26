@@ -1,0 +1,19 @@
+{
+  "format": "dsh-games-feed",
+  "version": 1,
+  "name": "s2512615-bit 的小游戏",
+  "author": "s2512615-bit",
+  "updatedAt": "2026-11-26T13:57:32.639Z",
+  "games": [
+    {
+      "slug": "starfall-realm",
+      "title": "星辉幻境",
+      "url": "starfall-realm/",
+      "cover": "starfall-realm/cover.jpg",
+      "dimension": "2d",
+      "orientation": "landscape",
+      "publishedAt": "2026-11-26T13:57:32.639Z"
+    }
+  ],
+  "wall": null
+}
