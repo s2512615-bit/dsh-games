@@ -4503,13 +4503,24 @@
       roomSub = (room ? room.name : '') + '  ·  房间 ' + (run.room + 1) + '/' + actNow.rooms.length;
     }
     txt(roomSub, rx, 44 * s, 11 * s, 'rgba(200,214,240,0.75)', 'right');
+    // 资源（金币 / 药水）：按实测文字宽度从右往左排版，
+    // 数值位数变化（9 → 287 → 1200）时图标不会被数字压住。
     var gy = 68 * s;
-    ctx.fillStyle = 'rgba(255,216,116,0.9)';
-    ctx.beginPath(); ctx.arc(rx - 118 * s, gy, 6 * s, 0, TAU); ctx.fill();
-    txt(String(run.gold), rx - 106 * s, gy, 13 * s, '#ffd874', 'right');
+    var resFont = 'bold ' + Math.round(13 * s) + 'px "Microsoft YaHei", "PingFang SC", system-ui, sans-serif';
+    ctx.font = resFont;
+    var potTxt = '×' + run.potions;
+    var potW = ctx.measureText(potTxt).width;
+    txt(potTxt, rx, gy, 13 * s, '#a6f0c8', 'right');
+    var potIconX = rx - potW - 10 * s;
     ctx.fillStyle = 'rgba(166,240,200,0.9)';
-    ctx.beginPath(); ctx.arc(rx - 62 * s, gy, 6 * s, 0, TAU); ctx.fill();
-    txt('×' + run.potions, rx - 50 * s, gy, 13 * s, '#a6f0c8', 'right');
+    ctx.beginPath(); ctx.arc(potIconX, gy, 6 * s, 0, TAU); ctx.fill();
+    var goldTxt = String(run.gold);
+    var goldW = ctx.measureText(goldTxt).width;
+    var goldRight = potIconX - 6 * s - 16 * s;
+    txt(goldTxt, goldRight, gy, 13 * s, '#ffd874', 'right');
+    var goldIconX = goldRight - goldW - 10 * s;
+    ctx.fillStyle = 'rgba(255,216,116,0.9)';
+    ctx.beginPath(); ctx.arc(goldIconX, gy, 6 * s, 0, TAU); ctx.fill();
     if (run.ng > 0) txt('NG+' + run.ng, rx, 90 * s, 11 * s, '#ff9d7a', 'right');
 
     // 技能按钮
