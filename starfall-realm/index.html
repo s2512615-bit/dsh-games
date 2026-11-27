@@ -126,6 +126,7 @@
     talentLine: null, talentLevel: 0, talentPoints: 0,
     runes: {}, affixes: [], relics: [], startAffix: null,
     equipped: { weapon: null, armor: null, relic: null }, bag: [],
+    expKills: 0,
   };
 
   var stats = {};
@@ -410,6 +411,13 @@
    * ============================================================ */
   var MOVE_KEYS = ['arrowup', 'arrowdown', 'arrowleft', 'arrowright', 'w', 'a', 's', 'd'];
 
+  // 奖励 / 岔路面板刚弹出的 400ms 内忽略确认输入：
+  // 战斗中连按空格普攻，升级瞬间 mode 切到 reward，下一次空格不该把卡片选掉。
+  var panelGuardUntil = 0;
+  function panelGuarded() {
+    return (mode === 'reward' || mode === 'path') && performance.now() < panelGuardUntil;
+  }
+
   document.addEventListener('keydown', function (e) {
     ensureAudio();
     var k = (e.key || '').toLowerCase();
@@ -417,6 +425,7 @@
 
     if (k === 'm') { muted = !muted; toastMsg(muted ? '静音' : '音效开启'); return; }
     if (e.repeat) return;
+    if (panelGuarded()) return;
 
     if (mode === 'title') {
       if (k === 'c' && hasSave()) continueRun();
@@ -438,14 +447,14 @@
     if (mode === 'dead') { if (k === 'enter' || k === ' ' || k === 'f') retryAct(); return; }
     if (mode === 'reward') {
       if (k === '1' || k === '2' || k === '3') pickCard(parseInt(k, 10) - 1);
-      if (k === 'f' || k === 'enter' || k === ' ') pickCard(cardIndex >= 0 ? cardIndex : 0);
+      if (k === 'f' || k === 'enter') pickCard(cardIndex >= 0 ? cardIndex : 0);
       if (k === 'arrowleft' || k === 'a') { cardIndex = (cardIndex + cards.length - 1) % cards.length; sfx.click(); }
       if (k === 'arrowright' || k === 'd') { cardIndex = (cardIndex + 1) % cards.length; sfx.click(); }
       return;
     }
     if (mode === 'path') {
       if (k === '1' || k === '2' || k === '3') choosePath(parseInt(k, 10) - 1);
-      if (k === 'f' || k === 'enter' || k === ' ') choosePath(pathIndex);
+      if (k === 'f' || k === 'enter') choosePath(pathIndex);
       if (k === 'arrowleft' || k === 'a') { pathIndex = (pathIndex + pathOptions.length - 1) % pathOptions.length; sfx.click(); }
       if (k === 'arrowright' || k === 'd') { pathIndex = (pathIndex + 1) % pathOptions.length; sfx.click(); }
       return;
@@ -510,12 +519,14 @@
     if (mode === 'story') { if (anyEdge) advanceStory(); return; }
     if (mode === 'dead') { if (anyEdge) retryAct(); return; }
     if (mode === 'path') {
+      if (panelGuarded()) return;
       if (edge(14)) { pathIndex = (pathIndex + pathOptions.length - 1) % pathOptions.length; sfx.click(); }
       if (edge(15)) { pathIndex = (pathIndex + 1) % pathOptions.length; sfx.click(); }
       if (anyEdge) choosePath(pathIndex);
       return;
     }
     if (mode === 'reward') {
+      if (panelGuarded()) return;
       if (edge(14)) { cardIndex = (cardIndex + cards.length - 1) % cards.length; sfx.click(); }
       if (edge(15)) { cardIndex = (cardIndex + 1) % cards.length; sfx.click(); }
       if (anyEdge) pickCard(cardIndex);
@@ -1344,7 +1355,7 @@
       talentLine: null, talentLevel: 0, talentPoints: Math.max(0, lvl - 1),
       runes: {}, affixes: [], relics: [], startAffix: null,
       equipped: { weapon: null, armor: null, relic: null }, bag: [],
-      node: null, visited: {},
+      node: null, visited: {}, expKills: 0,
     };
     if (run.ng > 0) run.startAffix = pickEndingAffix(run.ng);
     hero = {
@@ -1435,6 +1446,8 @@
       switches: (def.switches || []).map(function (s) { return { x: s[0], y: s[1], on: false, glow: 0 }; }),
       fightTime: 0
     };
+    room.expTotal = roomExpTarget(room);
+    run.expKills = 0;
     enemies.length = 0; projectiles.length = 0; hazards.length = 0;
     effects.length = 0; floaters.length = 0; drops.length = 0;
     hero.x = W / 2; hero.y = ARENA.y1 - 76;
@@ -1472,6 +1485,8 @@
       backPortal: node.backPortalTo ? { x: W / 2, y: 320, to: node.backPortalTo } : null,
       fightTime: 0
     };
+    room.expTotal = roomExpTarget(room);
+    run.expKills = 0;
     enemies.length = 0; projectiles.length = 0; hazards.length = 0;
     effects.length = 0; floaters.length = 0; drops.length = 0;
     hero.x = W / 2; hero.y = ARENA.y1 - 76;
@@ -1534,6 +1549,16 @@
     var out = [];
     for (var i = 0; i < enemies.length; i++) if (!enemies[i].dead && enemies[i].state !== 'spawn') out.push(enemies[i]);
     return out;
+  }
+
+  function roomExpTarget(r) {
+    if (!r || !r.def || !r.def.waves) return 0;
+    var n = 0;
+    for (var w = 0; w < r.def.waves.length; w++) {
+      n += r.def.waves[w].length;
+      if (run.event && run.event.id === 'rift' && r.type !== 'boss') n += 1;
+    }
+    return n;
   }
 
   function roomCleared() {
@@ -1705,6 +1730,7 @@
     cardIndex = 0;
     mode = 'reward';
     paused = false;
+    panelGuardUntil = performance.now() + 400;
   }
 
   function rollCards() {
@@ -1762,6 +1788,7 @@
     pathOptions = ids.slice();
     pathIndex = 0;
     mode = 'path';
+    panelGuardUntil = performance.now() + 400;
     sfx.click();
   }
 
@@ -2195,6 +2222,7 @@
     if (e.dead) return;
     e.dead = true;
     run.kills++;
+    if (room && room.expTotal > 0 && run.expKills < room.expTotal) run.expKills++;
     score += 10;
     if (stats.killHeal) healHero(stats.killHeal, true);
     var n = e.kind === 'boss' ? 14 : (e.kind === 'elite' || e.kind === 'warden' ? 6 : 3);
@@ -4440,6 +4468,13 @@
     ctx.textBaseline = 'middle';
     txt(Math.max(0, Math.ceil(hero.hp)) + ' / ' + Math.round(stats.maxHp), bx + 8 * s, by + 12 * s + bh / 2 + 0.5, 11 * s, 'rgba(255,255,255,0.92)');
     txt(Math.floor(hero.mp) + ' / ' + Math.round(stats.maxMp), bx + 8 * s, by + 12 * s + bh + 6 * s + bh * 0.36, 9.5 * s, 'rgba(220,240,255,0.85)');
+    // 经验：本关击杀进度，满格即升级（升级节奏仍是清场升一级）
+    var exW = bw * 0.82, exH = bh * 0.8;
+    var exY = by + 12 * s + bh + 6 * s + bh * 0.72 + 7 * s;
+    var expRatio = (room && room.expTotal > 0) ? clamp(run.expKills / room.expTotal, 0, 1) : 0;
+    var expPct = Math.round(expRatio * 100);
+    bar(bx, exY, exW, exH, expRatio, '#a8843c', '#ffe08a');
+    txt('EXP ' + expPct + ' / 100', bx + 1 * s, exY + exH + 9 * s, 10 * s, '#ffd874');
     // 等级
     ctx.save();
     ctx.translate(bx + bw + 20 * s, by + 12 * s + bh * 1.6);
@@ -4750,7 +4785,7 @@
       txt(String(i + 1), x + cw / 2, y0 + ch - 23 * s, 12 * s, '#0a0c14', 'center');
       uiRects.push({ id: 'path' + i, x: x, y: y0, w: cw, h: ch });
     }
-    txt('点击 / 按 1 2 选择', c.w / 2, y0 + ch + 36 * s, 11.5 * s, 'rgba(190,200,225,0.6)', 'center');
+    txt('点击 / 按 1 2 选择 · F / Enter 确认', c.w / 2, y0 + ch + 36 * s, 11.5 * s, 'rgba(190,200,225,0.6)', 'center');
   }
 
   function drawReward() {
@@ -4795,7 +4830,7 @@
       txt(String(i + 1), x + cw / 2, y0 + ch - 25 * s, 12 * s, '#0a0c14', 'center');
       uiRects.push({ id: 'card' + i, x: x, y: y0, w: cw, h: ch });
     }
-    txt('点击卡牌 / 按 1 2 3 选择', c.w / 2, y0 + ch + 40 * s, 11.5 * s, 'rgba(190,200,225,0.6)', 'center');
+    txt('点击卡牌 / 按 1 2 3 选择 · F / Enter 确认', c.w / 2, y0 + ch + 40 * s, 11.5 * s, 'rgba(190,200,225,0.6)', 'center');
   }
 
   /* 装备面板：三槽位 + 待选列表 */
@@ -5060,6 +5095,7 @@
 
   function handleOverlayClick(x, y) {
     var i, r;
+    if (panelGuarded()) return;
     for (i = 0; i < uiRects.length; i++) {
       r = uiRects[i];
       if (x >= r.x && x <= r.x + r.w && y >= r.y && y <= r.y + r.h) {
@@ -5222,6 +5258,8 @@
         relic: run.equipped.relic ? run.equipped.relic.name : null
       },
       bag: run.bag.length,
+      exp: (room && room.expTotal > 0) ? Math.round(100 * Math.min(1, run.expKills / room.expTotal)) : 0,
+      expKills: run.expKills,
       bossHp: (function () {
         for (var k = 0; k < enemies.length; k++) if (enemies[k].kind === 'boss' && !enemies[k].dead) return r2(enemies[k].hp);
         return 0;
