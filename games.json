@@ -3,7 +3,7 @@
   "version": 1,
   "name": "s2512615-bit 的小游戏",
   "author": "s2512615-bit",
-  "updatedAt": "2026-11-27T08:52:14.168Z",
+  "updatedAt": "2026-11-27T09:00:04.486Z",
   "games": [
     {
       "slug": "starfall-realm",
@@ -12,7 +12,7 @@
       "cover": "starfall-realm/cover.jpg",
       "dimension": "2d",
       "orientation": "landscape",
-      "publishedAt": "2026-11-27T08:52:14.168Z"
+      "publishedAt": "2026-11-27T09:00:04.486Z"
     }
   ],
   "wall": null
